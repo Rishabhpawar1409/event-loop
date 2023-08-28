@@ -11,42 +11,8 @@ const Mysandpack = () => {
   const code = files[activeFile].code;
 
   useEffect(() => {
-    renderData();
-  }, [insights]);
-
-  const renderData = () => {
     console.log("insights:", insights);
-    if (insights.callStack) {
-      let currentIndex = 0;
-
-      const removeFunction = (func) => {
-        console.log("I am removing this function :", func);
-        setInsights({
-          ...insights,
-          callStack: insights.callStack.filter((el) => {
-            return el.name !== func.name;
-          }),
-        });
-
-        setTimeout(() => {
-          renderNextFunction();
-        }, 2000);
-      };
-      const renderNextFunction = () => {
-        if (currentIndex < insights.callStack.length) {
-          const currentFunction = insights.callStack[currentIndex];
-          console.log("It's my turn :", currentFunction);
-
-          currentIndex++;
-
-          setTimeout(() => {
-            removeFunction(currentFunction);
-          }, 3000);
-        }
-      };
-      // renderNextFunction();
-    }
-  };
+  }, [insights]);
 
   const handleSubmit = () => {
     const ast = parse(code);
@@ -61,7 +27,6 @@ const Mysandpack = () => {
       .then((response) => response.text())
       .then((data) => {
         setInsights(JSON.parse(data));
-        // console.log("data:", JSON.parse(data));
       })
       .catch((error) => {
         console.error("Error:", error);

@@ -5,12 +5,22 @@ const cors = require("cors");
 const traverse = require("@babel/traverse").default;
 const app = express();
 
-const data = {
-  callStack: [],
-  globalMemory: [],
-  webAPIContainers: [],
-  conditionalStatements: [],
-};
+const snapshots = [
+  [
+    {
+      renderType: "callStack",
+      data: [],
+    },
+    {
+      renderType: "webAPI",
+      data: [],
+    },
+    {
+      renderType: "callbackQueue",
+      data: [],
+    },
+  ],
+];
 
 app.use(bodyParser.json());
 app.use(
@@ -35,23 +45,68 @@ app.post("/analyze", (req, res) => {
             return el.name;
           }),
         };
-        data.callStack.push(nodeData);
+
+        for (let i = 0; i < snapshots.length; i++) {
+          const callStackSnapshot = snapshots[i].find(
+            (snapshot) => snapshot.renderType === "callStack"
+          );
+
+          if (callStackSnapshot && callStackSnapshot.data.length < 1) {
+            callStackSnapshot.data.push(nodeData);
+          } else {
+            snapshots.push([
+              {
+                renderType: "callStack",
+                data: [],
+              },
+              {
+                renderType: "webAPI",
+                data: [],
+              },
+              {
+                renderType: "callbackQueue",
+                data: [],
+              },
+            ]);
+          }
+        }
       }
     },
     VariableDeclaration(path) {
       if (path.node.type === "VariableDeclaration") {
-        data.globalMemory.push(path.node);
-        // console.log("data:", data);
       }
     },
     CallExpression(path) {
       const { callee } = path.node;
       if (callee.type === "Identifier" && callee.name === "setTimeout") {
-        data.webAPIContainers.push(path.node);
+        for (let i = 0; i < snapshots.length; i++) {
+          const callStackSnapshot = snapshots[i].find(
+            (snapshot) => snapshot.renderType === "webAPI"
+          );
+
+          if (callStackSnapshot && callStackSnapshot.data.length < 1) {
+            callStackSnapshot.data.push(path.node);
+          } else {
+            snapshots.push([
+              {
+                renderType: "callStack",
+                data: [],
+              },
+              {
+                renderType: "webAPI",
+                data: [],
+              },
+              {
+                renderType: "callbackQueue",
+                data: [],
+              },
+            ]);
+          }
+        }
       }
     },
   });
-  res.send(data);
+  res.send(snapshots);
 });
 
 app.listen(3001, () => {
